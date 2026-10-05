@@ -1,1 +1,5 @@
-fastapi uvicorn yt-dlp groq pydantic 
+fastapi
+uvicorn
+yt-dlp
+groq
+pydantic
