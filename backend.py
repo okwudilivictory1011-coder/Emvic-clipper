@@ -54,25 +54,33 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         audio_raw = "temp_audio_raw.m4a"
         audio_fast = "temp_audio_fast.mp3"
 
-        # 1. Download audio using mobile client emulation to bypass cloud IP bot checks
-        task_status["step"] = "Connecting to YouTube via mobile stream bypass..."
-        ydl_opts_audio = {
-            'format': 'ba/b',
-            'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
-            'outtmpl': audio_raw,
-            'overwrites': True,
+        # Cloud IP bypass headers and client fallback
+        common_ydl_args = {
             'quiet': True,
+            'no_warnings': True,
+            'overwrites': True,
             'force_keyframes_at_cuts': True,
+            'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'ios']
+                    'player_client': ['mweb', 'tv_embedded', 'web'],
+                    'player_skip': ['configs', 'webpage']
                 }
             }
+        }
+
+        # 1. Download initial audio segment
+        task_status["step"] = "Downloading source audio via bypass stream..."
+        ydl_opts_audio = {
+            **common_ydl_args,
+            'format': 'ba/b',
+            'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
+            'outtmpl': audio_raw
         }
         with yt_dlp.YoutubeDL(ydl_opts_audio) as ydl:
             ydl.download([youtube_url])
 
-        # Convert to lightweight 16kHz mono audio for Whisper transcription
+        # Convert to lightweight 16kHz mono audio for Groq Whisper
         subprocess.run([
             "ffmpeg", "-y", "-i", audio_raw,
             "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k",
@@ -98,7 +106,6 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         ][:120]
         formatted_transcript = "\n".join([f"[{s['start']}s - {s['end']}s] {s['text']}" for s in segments])
 
-        # Fetch available Groq models
         all_models = [m.id for m in client.models.list().data]
         excluded = ["whisper", "guard", "allam", "embed", "moderation", "vision"]
         chat_candidates = [m for m in all_models if not any(bad in m.lower() for bad in excluded)]
@@ -175,17 +182,10 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             filepath = os.path.join(OUTPUT_DIR, filename)
 
             ydl_section_opts = {
+                **common_ydl_args,
                 'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
                 'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
-                'outtmpl': raw_chunk,
-                'overwrites': True,
-                'quiet': True,
-                'force_keyframes_at_cuts': True,
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['android', 'ios']
-                    }
-                }
+                'outtmpl': raw_chunk
             }
             with yt_dlp.YoutubeDL(ydl_section_opts) as ydl:
                 ydl.download([youtube_url])
