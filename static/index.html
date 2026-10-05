@@ -1,91 +1,189 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <title>Emvic Clipper - AI Video Studio</title>
+  <title>Emvic Clipper — Pro AI Vertical Video Studio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Google Fonts: Plus Jakarta Sans & Space Grotesk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
     .aspect-9-16 { aspect-ratio: 9 / 16; }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-  <div class="max-w-6xl mx-auto px-4 py-8">
-    <!-- Header -->
-    <header class="flex items-center justify-between pb-6 border-b border-slate-800">
-      <div>
-        <a href="/" class="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2 hover:opacity-95 transition">
-          <span class="text-indigo-500">⚡</span>
-          <span>Emvic Clipper</span>
-        </a>
-        <p class="text-xs md:text-sm text-slate-400 mt-1">Transform long videos into viral 1080x1920 Full HD vertical shorts.</p>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white">
+  
+  <!-- Subtle Ambient Glows -->
+  <div class="fixed top-0 left-1/4 w-96 h-96 bg-brand-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+  <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Top Navigation / Brand Bar -->
+    <header class="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-8">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/25">
+          <span class="text-xl">⚡</span>
+        </div>
+        <div>
+          <h1 class="text-2xl font-extrabold text-white tracking-tight font-display flex items-center gap-2">
+            Emvic Clipper <span class="text-xs bg-brand-600/30 text-brand-400 border border-brand-500/30 px-2 py-0.5 rounded-full font-sans font-semibold">PRO</span>
+          </h1>
+          <p class="text-xs text-slate-400">AI Viral Moment Extractor & 9:16 HD Cropper</p>
+        </div>
       </div>
-      <div class="flex items-center gap-2 text-xs bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full text-emerald-400 font-semibold shadow-inner">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> 9:16 Full HD (1080x1920)
+      
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center gap-2 text-xs bg-slate-900/80 border border-slate-800 px-3.5 py-1.5 rounded-full text-slate-300 font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>FastAPI + Groq Whisper</span>
+        </div>
+        <div class="text-xs bg-indigo-950/60 border border-indigo-800/50 px-3.5 py-1.5 rounded-full text-indigo-300 font-semibold shadow-inner">
+          1080x1920 (9:16)
+        </div>
       </div>
     </header>
 
-    <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-      <!-- Controls -->
-      <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 h-fit shadow-2xl backdrop-blur-md">
-        <h2 class="text-lg font-bold text-white mb-4">Clip Generator</h2>
-
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">YouTube URL</label>
-            <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+    <!-- Studio Grid -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- Left Configuration Console (5 Cols) -->
+      <section class="lg:col-span-5 space-y-6">
+        <div class="glass-panel rounded-2xl p-6 shadow-2xl space-y-5">
+          <div class="border-b border-slate-800/80 pb-4">
+            <h2 class="text-base font-bold text-white flex items-center gap-2 font-display">
+              <span>🎛</span> Generation Pipeline
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Provide your source video and clipping preferences.</p>
           </div>
 
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Clip Name Prefix</label>
-            <input id="customName" type="text" placeholder="e.g. Emvic_Podcast" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Groq API Key <span class="text-slate-500 normal-case">(optional if set in backend)</span></label>
-            <input id="groqKey" type="password" placeholder="Leave blank to use default key" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-          </div>
-
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Number of Clips</label>
-              <span id="clipCountLabel" class="text-sm font-bold text-indigo-400">3</span>
+          <!-- YouTube URL Field -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">YouTube Source URL</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500 text-sm">▶</span>
+              <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition shadow-inner">
             </div>
-            <input id="numClips" type="range" min="1" max="10" value="3" oninput="clipCountLabel.innerText = this.value" class="w-full accent-indigo-500 cursor-pointer">
           </div>
 
-          <button id="generateBtn" onclick="startGeneration()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-semibold py-3.5 rounded-xl transition duration-150 shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2">
-            <span>⚡ Generate Shorts with Emvic</span>
+          <!-- Custom Clip Prefix -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Clip Naming Prefix</label>
+            <input id="customName" type="text" placeholder="e.g. Finance_Podcast" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition shadow-inner">
+          </div>
+
+          <!-- Optional Groq Key -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center">
+              <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Groq API Key</label>
+              <span class="text-[11px] text-slate-500">Optional</span>
+            </div>
+            <input id="groqKey" type="password" placeholder="Leave blank to use server key" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition shadow-inner">
+          </div>
+
+          <!-- Number of Clips Slider -->
+          <div class="space-y-2 pt-2 border-t border-slate-800/80">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-300 uppercase tracking-wider">Clip Target Count</span>
+              <span id="clipCountBadge" class="bg-brand-600/30 text-brand-300 border border-brand-500/30 font-bold px-2 py-0.5 rounded-md font-mono">3 Clips</span>
+            </div>
+            <input id="numClips" type="range" min="1" max="10" value="3" oninput="clipCountBadge.innerText = this.value + ' Clips'" class="w-full accent-brand-500 cursor-pointer">
+            <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+              <span>1</span>
+              <span>5</span>
+              <span>10</span>
+            </div>
+          </div>
+
+          <!-- Duration Notice -->
+          <div class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
+            <span class="text-brand-400 text-base">⏱</span>
+            <span>AI automatically enforces <strong>60s - 120s</strong> durations with high-curiosity hooks.</span>
+          </div>
+
+          <!-- Submit Button -->
+          <button id="generateBtn" onclick="startGeneration()" class="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition duration-150 shadow-xl shadow-brand-600/25 flex items-center justify-center gap-2 cursor-pointer">
+            <span>⚡ Start Auto-Clipper Pipeline</span>
           </button>
         </div>
 
-        <!-- Live Progress Status -->
-        <div id="statusContainer" class="hidden mt-6 pt-5 border-t border-slate-800">
-          <div class="flex items-center gap-2.5 text-sm font-medium text-slate-300">
-            <svg id="spinner" class="animate-spin h-4 w-4 text-indigo-400" viewBox="0 0 24 24" fill="none">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            <span id="statusText">Initializing Emvic Clipper...</span>
+        <!-- Live Status Tracker Card -->
+        <div id="statusCard" class="hidden glass-panel rounded-2xl p-5 shadow-2xl border-l-4 border-l-brand-500 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <svg id="spinnerIcon" class="animate-spin h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span id="statusHeader" class="text-xs font-bold uppercase tracking-wider text-brand-400">Processing Stage</span>
+            </div>
+            <span id="elapsedBadge" class="text-[11px] font-mono text-slate-400">Active</span>
           </div>
-          <div id="errorBox" class="hidden mt-3 p-3 bg-red-950/60 border border-red-800 text-red-300 text-xs rounded-lg"></div>
+          <p id="statusDescription" class="text-xs text-slate-200 font-medium">Initiating pipeline...</p>
+          <div id="errorAlert" class="hidden p-3 rounded-lg bg-red-950/70 border border-red-800/80 text-red-300 text-xs font-mono break-words"></div>
         </div>
       </section>
 
-      <!-- Video Feed -->
-      <section class="lg:col-span-2">
-        <h2 class="text-lg font-bold text-white mb-4">Exported Shorts Gallery</h2>
-        <div id="placeholder" class="flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-2xl p-16 text-center text-slate-500">
-          <span class="text-5xl mb-3">📱</span>
-          <p class="text-sm font-medium">Your 1–2 minute vertical shorts will display here ready for review and instant download.</p>
+      <!-- Right Output Gallery (7 Cols) -->
+      <section class="lg:col-span-7 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-white font-display flex items-center gap-2">
+            <span>📱</span> Exported 9:16 Shorts Gallery
+          </h2>
+          <span id="readyCountBadge" class="text-xs text-slate-500 font-mono">0 clips loaded</span>
         </div>
 
-        <div id="clipsGallery" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden"></div>
+        <!-- Placeholder when idle -->
+        <div id="galleryPlaceholder" class="glass-panel border-2 border-dashed border-slate-800 rounded-3xl p-16 flex flex-col items-center justify-center text-center space-y-4 min-h-[460px]">
+          <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-3xl shadow-inner">
+            🎬
+          </div>
+          <div class="max-w-sm">
+            <h3 class="text-sm font-bold text-white">No Clips Processed Yet</h3>
+            <p class="text-xs text-slate-400 mt-1">Submit a YouTube URL on the left panel. Your high-definition 1080x1920 vertical shorts will automatically render here with preview playback and direct download links.</p>
+          </div>
+        </div>
+
+        <!-- Clips Grid -->
+        <div id="clipsGallery" class="grid grid-cols-1 sm:grid-cols-2 gap-5 hidden"></div>
       </section>
-    </div>
+
+    </main>
   </div>
 
   <script>
@@ -103,11 +201,12 @@
       }
 
       document.getElementById('generateBtn').disabled = true;
-      document.getElementById('generateBtn').classList.add('opacity-50');
-      document.getElementById('statusContainer').classList.remove('hidden');
-      document.getElementById('errorBox').classList.add('hidden');
-      document.getElementById('spinner').classList.remove('hidden');
-      document.getElementById('statusText').innerText = "Queuing pipeline in Emvic Clipper...";
+      document.getElementById('generateBtn').classList.add('opacity-50', 'cursor-not-allowed');
+      document.getElementById('statusCard').classList.remove('hidden');
+      document.getElementById('errorAlert').classList.add('hidden');
+      document.getElementById('spinnerIcon').classList.remove('hidden');
+      document.getElementById('statusHeader').innerText = "Starting Pipeline";
+      document.getElementById('statusDescription').innerText = "Connecting to Emvic Clipper backend...";
 
       try {
         const res = await fetch('/api/generate', {
@@ -122,15 +221,13 @@
         });
 
         if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || "Failed to trigger clipping task.");
+          const errData = await res.json();
+          throw new Error(errData.message || "Failed to trigger generation.");
         }
 
         pollInterval = setInterval(pollStatus, 2000);
       } catch (err) {
-        document.getElementById('errorBox').innerText = err.message;
-        document.getElementById('errorBox').classList.remove('hidden');
-        resetBtn();
+        showError(err.message);
       }
     }
 
@@ -140,20 +237,18 @@
         const data = await res.json();
 
         if (data.status === "processing") {
-          document.getElementById('statusText').innerText = data.step;
+          document.getElementById('statusHeader').innerText = "Processing Stage";
+          document.getElementById('statusDescription').innerText = data.step;
         } else if (data.status === "completed") {
           clearInterval(pollInterval);
-          document.getElementById('statusText').innerText = "All clips ready!";
-          document.getElementById('spinner').classList.add('hidden');
+          document.getElementById('statusHeader').innerText = "Finished";
+          document.getElementById('statusDescription').innerText = "All clips rendered successfully!";
+          document.getElementById('spinnerIcon').classList.add('hidden');
           renderClips(data.clips);
-          resetBtn();
+          resetForm();
         } else if (data.status === "error") {
           clearInterval(pollInterval);
-          document.getElementById('statusText').innerText = "Processing error";
-          document.getElementById('spinner').classList.add('hidden');
-          document.getElementById('errorBox').innerText = data.error;
-          document.getElementById('errorBox').classList.remove('hidden');
-          resetBtn();
+          showError(data.error || "An unknown error occurred during video clipping.");
         }
       } catch (err) {
         console.error("Polling error:", err);
@@ -161,33 +256,56 @@
     }
 
     function renderClips(clips) {
-      document.getElementById('placeholder').classList.add('hidden');
+      document.getElementById('galleryPlaceholder').classList.add('hidden');
       const gallery = document.getElementById('clipsGallery');
       gallery.innerHTML = '';
       gallery.classList.remove('hidden');
+      document.getElementById('readyCountBadge').innerText = `${clips.length} clip(s) ready`;
 
-      clips.forEach((clip) => {
+      clips.forEach((clip, index) => {
         const card = document.createElement('div');
-        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl";
+        card.className = "glass-panel rounded-2xl p-4 flex flex-col justify-between shadow-2xl border border-slate-800 hover:border-slate-700 transition space-y-3.5";
         card.innerHTML = `
           <div>
-            <div class="relative w-full rounded-xl overflow-hidden bg-black aspect-9-16 shadow-inner">
-              <video src="${clip.url}" controls class="w-full h-full object-cover"></video>
+            <!-- Vertical 9:16 Video Player Card -->
+            <div class="relative w-full rounded-xl overflow-hidden bg-black aspect-9-16 shadow-2xl border border-slate-800">
+              <video src="${clip.url}" controls playsinline class="w-full h-full object-cover"></video>
+              <div class="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400 border border-white/10">
+                1080x1920
+              </div>
             </div>
-            <h3 class="text-sm font-semibold text-white mt-3 line-clamp-1">${clip.title}</h3>
-            <p class="text-xs text-slate-400 mt-0.5">Duration: ${clip.duration}s • 1080x1920 (9:16)</p>
+            
+            <div class="mt-3">
+              <h3 class="text-sm font-bold text-white line-clamp-1">${clip.title}</h3>
+              <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1 font-mono">
+                <span>⏱ ${clip.duration}s</span>
+                <span class="text-brand-400">#${index + 1}</span>
+              </div>
+            </div>
           </div>
-          <a href="${clip.url}" download="${clip.filename}" class="mt-4 block text-center w-full bg-slate-800 hover:bg-indigo-600 hover:text-white active:scale-[0.98] text-indigo-400 text-xs font-semibold py-2.5 rounded-lg border border-slate-700 hover:border-transparent transition">
-            ⬇ Download (${clip.filename})
+
+          <a href="${clip.url}" download="${clip.filename}" class="w-full bg-slate-900 hover:bg-brand-600 hover:text-white text-brand-400 text-xs font-bold py-2.5 rounded-xl border border-slate-700/80 hover:border-transparent transition flex items-center justify-center gap-1.5 shadow-md">
+            <span>⬇</span>
+            <span>Download MP4</span>
           </a>
         `;
         gallery.appendChild(card);
       });
     }
 
-    function resetBtn() {
+    function showError(msg) {
+      document.getElementById('spinnerIcon').classList.add('hidden');
+      document.getElementById('statusHeader').innerText = "Pipeline Error";
+      document.getElementById('statusDescription').innerText = "The clipping process encountered an issue.";
+      const errorBox = document.getElementById('errorAlert');
+      errorBox.innerText = msg;
+      errorBox.classList.remove('hidden');
+      resetForm();
+    }
+
+    function resetForm() {
       document.getElementById('generateBtn').disabled = false;
-      document.getElementById('generateBtn').classList.remove('opacity-50');
+      document.getElementById('generateBtn').classList.remove('opacity-50', 'cursor-not-allowed');
     }
   </script>
 </body>
