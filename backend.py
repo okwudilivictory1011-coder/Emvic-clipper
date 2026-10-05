@@ -47,7 +47,7 @@ def sanitize_filename(name: str) -> str:
     return cleaned if cleaned else "Emvic_Clip"
 
 def get_active_cookie_file():
-    """Copies read-only Render secret cookies to a writable /tmp directory for yt-dlp."""
+    """Copies read-only Render secret cookies to /tmp for yt-dlp."""
     if os.path.exists(RENDER_SECRET_COOKIE):
         try:
             shutil.copyfile(RENDER_SECRET_COOKIE, WRITABLE_COOKIE_PATH)
@@ -59,7 +59,7 @@ def get_active_cookie_file():
     return None
 
 def build_ydl_options(extra_opts=None):
-    """Universal options configured with writable cookies to prevent Errno 30."""
+    """Bypasses 'page needs to be reloaded' by routing authenticated traffic through web_embedded."""
     cookie_file = get_active_cookie_file()
     base_opts = {
         'quiet': True,
@@ -67,8 +67,14 @@ def build_ydl_options(extra_opts=None):
         'overwrites': True,
         'force_keyframes_at_cuts': True,
         'socket_timeout': 30,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web_embedded', 'web_safari', 'default'],
+                'player_skip': ['webpage']
+            }
+        },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
             'Accept-Language': 'en-US,en;q=0.9',
         }
     }
@@ -92,7 +98,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         audio_fast = "temp_audio_fast.mp3"
 
         # 1. Download initial audio stream
-        task_status["step"] = "Authenticating with YouTube and downloading audio..."
+        task_status["step"] = "Downloading audio stream..."
         ydl_audio_opts = build_ydl_options({
             'format': 'ba/ba*',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
