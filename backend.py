@@ -21,7 +21,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, "static", "index.html")
 
-# Optional: Default Groq Key
 DEFAULT_GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 
 task_status = {
@@ -55,20 +54,25 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         audio_raw = "temp_audio_raw.m4a"
         audio_fast = "temp_audio_fast.mp3"
 
-        # 1. Download first 12 minutes of audio for dialogue analysis
-        task_status["step"] = "Downloading audio sample directly from YouTube (0-12m)..."
+        # 1. Download audio using mobile client emulation to bypass cloud IP bot checks
+        task_status["step"] = "Connecting to YouTube via mobile stream bypass..."
         ydl_opts_audio = {
             'format': 'ba/b',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
             'outtmpl': audio_raw,
             'overwrites': True,
             'quiet': True,
-            'force_keyframes_at_cuts': True
+            'force_keyframes_at_cuts': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios']
+                }
+            }
         }
         with yt_dlp.YoutubeDL(ydl_opts_audio) as ydl:
             ydl.download([youtube_url])
 
-        # Convert to lightweight mono audio for Groq Whisper
+        # Convert to lightweight 16kHz mono audio for Whisper transcription
         subprocess.run([
             "ffmpeg", "-y", "-i", audio_raw,
             "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k",
@@ -78,8 +82,8 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         if os.path.exists(audio_raw):
             os.remove(audio_raw)
 
-        # 2. Transcribe and score high-retention viral hooks
-        task_status["step"] = f"Emvic AI analyzing transcript & finding top {num_clips} viral moments..."
+        # 2. Transcribe and score high-retention viral segments
+        task_status["step"] = f"Emvic AI analyzing transcript & scoring top {num_clips} viral hooks..."
         client = Groq(api_key=groq_key)
         with open(audio_fast, "rb") as file:
             transcription = client.audio.transcriptions.create(
@@ -94,7 +98,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         ][:120]
         formatted_transcript = "\n".join([f"[{s['start']}s - {s['end']}s] {s['text']}" for s in segments])
 
-        # Pick chat candidate
+        # Fetch available Groq models
         all_models = [m.id for m in client.models.list().data]
         excluded = ["whisper", "guard", "allam", "embed", "moderation", "vision"]
         chat_candidates = [m for m in all_models if not any(bad in m.lower() for bad in excluded)]
@@ -135,9 +139,13 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             clips_list = []
             segment_len = max(min_duration, 60.0)
             for i in range(num_clips):
-                clips_list.append({"start": i * (segment_len + 10.0), "end": (i * (segment_len + 10.0)) + segment_len, "title": f"Clip {i + 1}"})
+                clips_list.append({
+                    "start": i * (segment_len + 10.0),
+                    "end": (i * (segment_len + 10.0)) + segment_len,
+                    "title": f"Clip {i + 1}"
+                })
 
-        # 3. Dynamic Aspect Ratio Filter Selection
+        # 3. Dynamic Crop Filter Selection
         if aspect_ratio == "1:1":
             vf_filter = "scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080,setsar=1"
             aspect_flag = "1:1"
@@ -172,7 +180,12 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                 'outtmpl': raw_chunk,
                 'overwrites': True,
                 'quiet': True,
-                'force_keyframes_at_cuts': True
+                'force_keyframes_at_cuts': True,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android', 'ios']
+                    }
+                }
             }
             with yt_dlp.YoutubeDL(ydl_section_opts) as ydl:
                 ydl.download([youtube_url])
@@ -223,7 +236,7 @@ def generate_clips(request: ClipRequest, background_tasks: BackgroundTasks):
 
     active_key = request.groq_key.strip() or DEFAULT_GROQ_KEY
     if not active_key:
-        return JSONResponse(status_code=400, content={"message": "No Groq API key supplied. Provide one in the UI or set DEFAULT_GROQ_KEY in backend.py."})
+        return JSONResponse(status_code=400, content={"message": "No Groq API key configured on server."})
 
     background_tasks.add_task(
         process_video_pipeline, 
