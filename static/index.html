@@ -2,185 +2,244 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <title>Emvic Clipper — Pro AI Vertical Video Studio</title>
+  <title>Emvic Clipper PRO — Multi-Format AI Video Studio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Plus Jakarta Sans & Space Grotesk -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            display: ['"Space Grotesk"', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              50: '#eef2ff',
-              400: '#818cf8',
-              500: '#6366f1',
-              600: '#4f46e5',
-              700: '#4338ca',
-            }
-          }
-        }
-      }
-    }
-  </script>
   <style>
-    .aspect-9-16 { aspect-ratio: 9 / 16; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-display { font-family: 'Space Grotesk', sans-serif; }
     .glass-panel {
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.78);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar { width: 5px; }
     .custom-scroll::-webkit-scrollbar-track { background: transparent; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+
+    /* Viewport Morphing Classes */
+    .viewport-9-16 {
+      width: 290px;
+      aspect-ratio: 9 / 16;
+      border-radius: 40px;
+      border: 8px solid #1e293b;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 2px #334155;
+    }
+    .viewport-1-1 {
+      width: 360px;
+      aspect-ratio: 1 / 1;
+      border-radius: 20px;
+      border: 6px solid #1e293b;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 2px #334155;
+    }
+    .viewport-16-9 {
+      width: 100%;
+      max-width: 520px;
+      aspect-ratio: 16 / 9;
+      border-radius: 16px;
+      border: 6px solid #1e293b;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 2px #334155;
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white">
-  
-  <!-- Subtle Ambient Glows -->
-  <div class="fixed top-0 left-1/4 w-96 h-96 bg-brand-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
-  <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    
-    <!-- Top Navigation / Brand Bar -->
-    <header class="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-8">
+  <!-- Ambient Glows -->
+  <div class="fixed top-0 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+  <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Top Navigation -->
+    <header class="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-6">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/25">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
           <span class="text-xl">⚡</span>
         </div>
         <div>
           <h1 class="text-2xl font-extrabold text-white tracking-tight font-display flex items-center gap-2">
-            Emvic Clipper <span class="text-xs bg-brand-600/30 text-brand-400 border border-brand-500/30 px-2 py-0.5 rounded-full font-sans font-semibold">PRO</span>
+            Emvic Clipper <span class="text-xs bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-sans font-bold">PRO STUDIO</span>
           </h1>
-          <p class="text-xs text-slate-400">AI Viral Moment Extractor & 9:16 HD Cropper</p>
+          <p class="text-xs text-slate-400">AI Viral Moment Extractor & Multi-Format Video Repurposer</p>
         </div>
       </div>
       
       <div class="flex items-center gap-3">
-        <div class="hidden sm:flex items-center gap-2 text-xs bg-slate-900/80 border border-slate-800 px-3.5 py-1.5 rounded-full text-slate-300 font-medium">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>FastAPI + Groq Whisper</span>
+        <div class="text-xs bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full text-slate-300 font-mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block mr-1.5 animate-pulse"></span>
+          Whisper Large-v3
         </div>
-        <div class="text-xs bg-indigo-950/60 border border-indigo-800/50 px-3.5 py-1.5 rounded-full text-indigo-300 font-semibold shadow-inner">
-          1080x1920 (9:16)
+        <div id="topAspectBadge" class="text-xs bg-indigo-950/80 border border-indigo-800/50 px-3.5 py-1.5 rounded-full text-indigo-300 font-bold font-mono">
+          9:16 Full HD
         </div>
       </div>
     </header>
 
-    <!-- Studio Grid -->
+    <!-- Main Workspace Grid -->
     <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
-      <!-- Left Configuration Console (5 Cols) -->
-      <section class="lg:col-span-5 space-y-6">
+      <!-- Ingestion Console (5 cols) -->
+      <section class="lg:col-span-5 space-y-5">
         <div class="glass-panel rounded-2xl p-6 shadow-2xl space-y-5">
-          <div class="border-b border-slate-800/80 pb-4">
-            <h2 class="text-base font-bold text-white flex items-center gap-2 font-display">
-              <span>🎛</span> Generation Pipeline
+          <div class="border-b border-slate-800/80 pb-3 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2 font-display uppercase tracking-wider">
+              <span>🎛</span> Ingestion Console
             </h2>
-            <p class="text-xs text-slate-400 mt-1">Provide your source video and clipping preferences.</p>
+            <span class="text-[11px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">FFmpeg Ready</span>
           </div>
 
-          <!-- YouTube URL Field -->
+          <!-- YouTube URL -->
           <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">YouTube Source URL</label>
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500 text-sm">▶</span>
-              <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition shadow-inner">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Source YouTube Video</label>
+            <div class="relative flex items-center">
+              <input id="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition shadow-inner">
+              <button onclick="pasteFromClipboard()" class="absolute right-2 px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition">Paste</button>
             </div>
           </div>
 
-          <!-- Custom Clip Prefix -->
+          <!-- Clip Prefix -->
           <div class="space-y-1.5">
             <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Clip Naming Prefix</label>
-            <input id="customName" type="text" placeholder="e.g. Finance_Podcast" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition shadow-inner">
+            <input id="customName" type="text" placeholder="e.g. DiaryOfACE0_Ep42" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-inner">
           </div>
 
-          <!-- Optional Groq Key -->
-          <div class="space-y-1.5">
-            <div class="flex justify-between items-center">
-              <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Groq API Key</label>
-              <span class="text-[11px] text-slate-500">Optional</span>
+          <!-- Output Framing / Aspect Ratio (Unlocked & Selectable) -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-300 uppercase tracking-wider">Output Framing / Aspect Ratio</span>
+              <span id="aspectResolutionText" class="text-slate-400 font-mono text-[11px]">1080 × 1920 (FHD)</span>
             </div>
-            <input id="groqKey" type="password" placeholder="Leave blank to use server key" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition shadow-inner">
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" onclick="selectAspect('9:16', '1080 × 1920 (FHD)')" id="aspectBtn-9-16" class="aspect-btn bg-indigo-600/30 border-2 border-indigo-500 text-white rounded-xl p-3 flex flex-col items-center justify-center transition">
+                <span class="text-base mb-1">📱</span>
+                <span class="text-xs font-bold">Vertical</span>
+                <span class="text-[10px] text-slate-400 font-mono">9:16 (Shorts/Reels)</span>
+              </button>
+
+              <button type="button" onclick="selectAspect('1:1', '1080 × 1080 (Square)')" id="aspectBtn-1-1" class="aspect-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-xl p-3 flex flex-col items-center justify-center transition">
+                <span class="text-base mb-1">⏹</span>
+                <span class="text-xs font-bold">Square</span>
+                <span class="text-[10px] text-slate-500 font-mono">1:1 (Post Feed)</span>
+              </button>
+
+              <button type="button" onclick="selectAspect('16:9', '1920 × 1080 (Landscape)')" id="aspectBtn-16-9" class="aspect-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-xl p-3 flex flex-col items-center justify-center transition">
+                <span class="text-base mb-1">🖥</span>
+                <span class="text-xs font-bold">Landscape</span>
+                <span class="text-[10px] text-slate-500 font-mono">16:9 (Wide)</span>
+              </button>
+            </div>
           </div>
 
-          <!-- Number of Clips Slider -->
+          <!-- Hook Duration Target -->
+          <div class="space-y-2">
+            <span class="block text-xs font-bold text-slate-300 uppercase tracking-wider">Hook Duration Target</span>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+              <button type="button" onclick="setDuration(60, 90, this)" class="dur-btn bg-indigo-600/30 border border-indigo-500 text-indigo-300 font-bold py-2 rounded-xl transition">
+                60s — 90s
+                <span class="block text-[10px] text-slate-400 font-normal">Sweet Spot</span>
+              </button>
+              <button type="button" onclick="setDuration(90, 120, this)" class="dur-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-medium py-2 rounded-xl transition">
+                90s — 120s
+                <span class="block text-[10px] text-slate-500 font-normal">Deep Dive</span>
+              </button>
+              <button type="button" onclick="setDuration(30, 60, this)" class="dur-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-medium py-2 rounded-xl transition">
+                30s — 60s
+                <span class="block text-[10px] text-slate-500 font-normal">Fast Paced</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Number of Clips -->
           <div class="space-y-2 pt-2 border-t border-slate-800/80">
             <div class="flex justify-between items-center text-xs">
-              <span class="font-bold text-slate-300 uppercase tracking-wider">Clip Target Count</span>
-              <span id="clipCountBadge" class="bg-brand-600/30 text-brand-300 border border-brand-500/30 font-bold px-2 py-0.5 rounded-md font-mono">3 Clips</span>
+              <span class="font-bold text-slate-300 uppercase tracking-wider">Number of Clips</span>
+              <span id="clipCountBadge" class="bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold px-2 py-0.5 rounded-md font-mono">3 Viral Shorts</span>
             </div>
-            <input id="numClips" type="range" min="1" max="10" value="3" oninput="clipCountBadge.innerText = this.value + ' Clips'" class="w-full accent-brand-500 cursor-pointer">
-            <div class="flex justify-between text-[11px] text-slate-500 font-mono">
-              <span>1</span>
-              <span>5</span>
-              <span>10</span>
-            </div>
+            <input id="numClips" type="range" min="1" max="8" value="3" oninput="clipCountBadge.innerText = this.value + ' Viral Shorts'" class="w-full accent-indigo-500 cursor-pointer">
           </div>
 
-          <!-- Duration Notice -->
-          <div class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-            <span class="text-brand-400 text-base">⏱</span>
-            <span>AI automatically enforces <strong>60s - 120s</strong> durations with high-curiosity hooks.</span>
-          </div>
+          <!-- Advanced Credentials Dropdown -->
+          <details class="text-xs text-slate-400">
+            <summary class="cursor-pointer font-semibold hover:text-slate-300 transition">Advanced API Credentials</summary>
+            <div class="pt-2">
+              <input id="groqKey" type="password" placeholder="Custom Groq API Key (leave empty if baked into backend)" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+            </div>
+          </details>
 
-          <!-- Submit Button -->
-          <button id="generateBtn" onclick="startGeneration()" class="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition duration-150 shadow-xl shadow-brand-600/25 flex items-center justify-center gap-2 cursor-pointer">
-            <span>⚡ Start Auto-Clipper Pipeline</span>
+          <!-- Start Button -->
+          <button id="generateBtn" onclick="startGeneration()" class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 active:scale-[0.99] text-white font-bold py-3.5 rounded-xl transition shadow-xl shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer">
+            <span>⚡ Generate Viral Clips with Emvic</span>
           </button>
         </div>
 
-        <!-- Live Status Tracker Card -->
-        <div id="statusCard" class="hidden glass-panel rounded-2xl p-5 shadow-2xl border-l-4 border-l-brand-500 space-y-3">
+        <!-- Task Live Progress Card -->
+        <div id="statusCard" class="hidden glass-panel rounded-2xl p-5 shadow-2xl border-l-4 border-l-indigo-500 space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <svg id="spinnerIcon" class="animate-spin h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none">
+              <svg id="spinnerIcon" class="animate-spin h-4 w-4 text-indigo-400" viewBox="0 0 24 24" fill="none">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
-              <span id="statusHeader" class="text-xs font-bold uppercase tracking-wider text-brand-400">Processing Stage</span>
+              <span id="statusHeader" class="text-xs font-bold uppercase tracking-wider text-indigo-400">Processing Stage</span>
             </div>
-            <span id="elapsedBadge" class="text-[11px] font-mono text-slate-400">Active</span>
+            <span class="text-[11px] font-mono text-slate-400">In Progress</span>
           </div>
-          <p id="statusDescription" class="text-xs text-slate-200 font-medium">Initiating pipeline...</p>
+          <p id="statusDescription" class="text-xs text-slate-200 font-medium">Connecting to pipeline...</p>
           <div id="errorAlert" class="hidden p-3 rounded-lg bg-red-950/70 border border-red-800/80 text-red-300 text-xs font-mono break-words"></div>
         </div>
       </section>
 
-      <!-- Right Output Gallery (7 Cols) -->
-      <section class="lg:col-span-7 space-y-4">
-        <div class="flex items-center justify-between">
-          <h2 class="text-base font-bold text-white font-display flex items-center gap-2">
-            <span>📱</span> Exported 9:16 Shorts Gallery
-          </h2>
-          <span id="readyCountBadge" class="text-xs text-slate-500 font-mono">0 clips loaded</span>
+      <!-- Center Preview & Outputs (7 cols) -->
+      <section class="lg:col-span-7 space-y-6">
+        
+        <!-- Live Viewport Device Container -->
+        <div class="glass-panel rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center min-h-[560px] relative overflow-hidden">
+          
+          <div class="absolute top-4 left-6 flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <span>📱</span> Device Preview & Outputs
+          </div>
+          <div id="exportedCountHeader" class="absolute top-4 right-6 text-xs text-slate-500 font-mono">
+            0 Clips Exported
+          </div>
+
+          <!-- Dynamic Aspect Viewport -->
+          <div id="previewViewport" class="viewport-9-16 bg-black relative flex items-center justify-center transition-all duration-300 overflow-hidden my-4">
+            
+            <!-- Video element (hidden until played) -->
+            <video id="mainVideoPlayer" controls playsinline class="w-full h-full object-cover hidden"></video>
+
+            <!-- Placeholder State -->
+            <div id="viewportEmptyState" class="text-center p-6 space-y-2 pointer-events-none">
+              <span class="text-3xl">🎬</span>
+              <h3 id="viewportDeviceTitle" class="text-xs font-bold text-slate-300">iPhone 16 Pro Viewport</h3>
+              <p class="text-[11px] text-slate-500 max-w-[200px]">Rendered clips preview here automatically with accurate aspect ratios.</p>
+            </div>
+          </div>
+
+          <!-- Current Selected Clip Action Bar -->
+          <div id="selectedClipBar" class="w-full max-w-md pt-2 flex items-center justify-between hidden">
+            <div>
+              <p id="selectedTitle" class="text-xs font-bold text-white truncate max-w-[220px]">Title</p>
+              <p id="selectedMeta" class="text-[11px] text-slate-400 font-mono">Duration: 75s</p>
+            </div>
+            <a id="selectedDownloadBtn" href="#" download class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/30">
+              <span>⬇</span> Download MP4
+            </a>
+          </div>
+
         </div>
 
-        <!-- Placeholder when idle -->
-        <div id="galleryPlaceholder" class="glass-panel border-2 border-dashed border-slate-800 rounded-3xl p-16 flex flex-col items-center justify-center text-center space-y-4 min-h-[460px]">
-          <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-3xl shadow-inner">
-            🎬
-          </div>
-          <div class="max-w-sm">
-            <h3 class="text-sm font-bold text-white">No Clips Processed Yet</h3>
-            <p class="text-xs text-slate-400 mt-1">Submit a YouTube URL on the left panel. Your high-definition 1080x1920 vertical shorts will automatically render here with preview playback and direct download links.</p>
-          </div>
+        <!-- Rendered Clips Horizontal Reel -->
+        <div id="clipsGalleryContainer" class="space-y-3 hidden">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Available Highlights</h3>
+          <div id="clipsReel" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
 
-        <!-- Clips Grid -->
-        <div id="clipsGallery" class="grid grid-cols-1 sm:grid-cols-2 gap-5 hidden"></div>
       </section>
 
     </main>
@@ -188,6 +247,57 @@
 
   <script>
     let pollInterval = null;
+    let selectedAspect = "9:16";
+    let minDur = 60.0;
+    let maxDur = 90.0;
+
+    function selectAspect(aspect, resolutionText) {
+      selectedAspect = aspect;
+      document.getElementById('aspectResolutionText').innerText = resolutionText;
+      document.getElementById('topAspectBadge').innerText = `${aspect} Full HD`;
+
+      // Reset button styles
+      document.querySelectorAll('.aspect-btn').forEach(btn => {
+        btn.className = "aspect-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-xl p-3 flex flex-col items-center justify-center transition";
+      });
+
+      const activeBtn = document.getElementById(`aspectBtn-${aspect.replace(':', '-')}`);
+      activeBtn.className = "aspect-btn bg-indigo-600/30 border-2 border-indigo-500 text-white rounded-xl p-3 flex flex-col items-center justify-center transition";
+
+      // Morph preview device viewport
+      const viewport = document.getElementById('previewViewport');
+      const deviceTitle = document.getElementById('viewportDeviceTitle');
+
+      viewport.className = "bg-black relative flex items-center justify-center transition-all duration-300 overflow-hidden my-4";
+      if (aspect === "9:16") {
+        viewport.classList.add("viewport-9-16");
+        deviceTitle.innerText = "iPhone 16 Pro Viewport";
+      } else if (aspect === "1:1") {
+        viewport.classList.add("viewport-1-1");
+        deviceTitle.innerText = "Square Feed (1:1)";
+      } else {
+        viewport.classList.add("viewport-16-9");
+        deviceTitle.innerText = "16:9 Landscape Monitor";
+      }
+    }
+
+    function setDuration(minD, maxD, btn) {
+      minDur = minD;
+      maxDur = maxD;
+      document.querySelectorAll('.dur-btn').forEach(b => {
+        b.className = "dur-btn bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-medium py-2 rounded-xl transition";
+      });
+      btn.className = "dur-btn bg-indigo-600/30 border border-indigo-500 text-indigo-300 font-bold py-2 rounded-xl transition";
+    }
+
+    async function pasteFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById('youtubeUrl').value = text;
+      } catch (err) {
+        console.error("Clipboard paste error:", err);
+      }
+    }
 
     async function startGeneration() {
       const groqKey = document.getElementById('groqKey').value.trim();
@@ -196,7 +306,7 @@
       const numClips = parseInt(document.getElementById('numClips').value);
 
       if (!youtubeUrl) {
-        alert("Please enter a YouTube video URL.");
+        alert("Please provide a valid YouTube URL.");
         return;
       }
 
@@ -205,8 +315,8 @@
       document.getElementById('statusCard').classList.remove('hidden');
       document.getElementById('errorAlert').classList.add('hidden');
       document.getElementById('spinnerIcon').classList.remove('hidden');
-      document.getElementById('statusHeader').innerText = "Starting Pipeline";
-      document.getElementById('statusDescription').innerText = "Connecting to Emvic Clipper backend...";
+      document.getElementById('statusHeader').innerText = "Processing Stage";
+      document.getElementById('statusDescription').innerText = "Queuing pipeline on backend...";
 
       try {
         const res = await fetch('/api/generate', {
@@ -216,7 +326,10 @@
             groq_key: groqKey, 
             youtube_url: youtubeUrl, 
             custom_name: customName,
-            num_clips: numClips 
+            num_clips: numClips,
+            aspect_ratio: selectedAspect,
+            min_duration: minDur,
+            max_duration: maxDur
           })
         });
 
@@ -237,18 +350,17 @@
         const data = await res.json();
 
         if (data.status === "processing") {
-          document.getElementById('statusHeader').innerText = "Processing Stage";
           document.getElementById('statusDescription').innerText = data.step;
         } else if (data.status === "completed") {
           clearInterval(pollInterval);
-          document.getElementById('statusHeader').innerText = "Finished";
-          document.getElementById('statusDescription').innerText = "All clips rendered successfully!";
+          document.getElementById('statusHeader').innerText = "Completed";
+          document.getElementById('statusDescription').innerText = "All viral clips generated!";
           document.getElementById('spinnerIcon').classList.add('hidden');
           renderClips(data.clips);
           resetForm();
         } else if (data.status === "error") {
           clearInterval(pollInterval);
-          showError(data.error || "An unknown error occurred during video clipping.");
+          showError(data.error || "An error occurred during video clipping.");
         }
       } catch (err) {
         console.error("Polling error:", err);
@@ -256,47 +368,60 @@
     }
 
     function renderClips(clips) {
-      document.getElementById('galleryPlaceholder').classList.add('hidden');
-      const gallery = document.getElementById('clipsGallery');
-      gallery.innerHTML = '';
-      gallery.classList.remove('hidden');
-      document.getElementById('readyCountBadge').innerText = `${clips.length} clip(s) ready`;
+      if (!clips || clips.length === 0) return;
 
-      clips.forEach((clip, index) => {
+      document.getElementById('clipsGalleryContainer').classList.remove('hidden');
+      document.getElementById('exportedCountHeader').innerText = `${clips.length} Clips Exported`;
+      
+      const reel = document.getElementById('clipsReel');
+      reel.innerHTML = '';
+
+      clips.forEach((clip, idx) => {
         const card = document.createElement('div');
-        card.className = "glass-panel rounded-2xl p-4 flex flex-col justify-between shadow-2xl border border-slate-800 hover:border-slate-700 transition space-y-3.5";
+        card.className = "bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-3 flex flex-col justify-between transition cursor-pointer shadow-lg";
+        card.onclick = () => loadVideoToPreview(clip);
+
         card.innerHTML = `
           <div>
-            <!-- Vertical 9:16 Video Player Card -->
-            <div class="relative w-full rounded-xl overflow-hidden bg-black aspect-9-16 shadow-2xl border border-slate-800">
-              <video src="${clip.url}" controls playsinline class="w-full h-full object-cover"></video>
-              <div class="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400 border border-white/10">
-                1080x1920
-              </div>
+            <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center border border-slate-800">
+              <span class="text-xl">▶</span>
             </div>
-            
-            <div class="mt-3">
-              <h3 class="text-sm font-bold text-white line-clamp-1">${clip.title}</h3>
-              <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1 font-mono">
-                <span>⏱ ${clip.duration}s</span>
-                <span class="text-brand-400">#${index + 1}</span>
-              </div>
-            </div>
+            <h4 class="text-xs font-bold text-white mt-2 truncate">${clip.title}</h4>
+            <p class="text-[10px] text-slate-400 font-mono mt-0.5">${clip.duration}s • ${clip.aspect || selectedAspect}</p>
           </div>
-
-          <a href="${clip.url}" download="${clip.filename}" class="w-full bg-slate-900 hover:bg-brand-600 hover:text-white text-brand-400 text-xs font-bold py-2.5 rounded-xl border border-slate-700/80 hover:border-transparent transition flex items-center justify-center gap-1.5 shadow-md">
-            <span>⬇</span>
-            <span>Download MP4</span>
+          <a href="${clip.url}" download="${clip.filename}" onclick="event.stopPropagation()" class="mt-2 block text-center bg-slate-800 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[11px] font-semibold py-1.5 rounded-lg transition">
+            Download
           </a>
         `;
-        gallery.appendChild(card);
+        reel.appendChild(card);
       });
+
+      // Load first clip into preview immediately
+      loadVideoToPreview(clips[0]);
+    }
+
+    function loadVideoToPreview(clip) {
+      const player = document.getElementById('mainVideoPlayer');
+      const emptyState = document.getElementById('viewportEmptyState');
+      const bar = document.getElementById('selectedClipBar');
+
+      player.src = clip.url;
+      player.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      bar.classList.remove('hidden');
+
+      document.getElementById('selectedTitle').innerText = clip.title;
+      document.getElementById('selectedMeta').innerText = `Duration: ${clip.duration}s • Format: ${clip.aspect || selectedAspect}`;
+      document.getElementById('selectedDownloadBtn').href = clip.url;
+      document.getElementById('selectedDownloadBtn').download = clip.filename;
+
+      player.play().catch(() => {});
     }
 
     function showError(msg) {
       document.getElementById('spinnerIcon').classList.add('hidden');
-      document.getElementById('statusHeader').innerText = "Pipeline Error";
-      document.getElementById('statusDescription').innerText = "The clipping process encountered an issue.";
+      document.getElementById('statusHeader').innerText = "Task Error";
+      document.getElementById('statusDescription').innerText = "Process encountered an error.";
       const errorBox = document.getElementById('errorAlert');
       errorBox.innerText = msg;
       errorBox.classList.remove('hidden');
