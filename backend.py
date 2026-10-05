@@ -14,7 +14,6 @@ app = FastAPI(title="Emvic Clipper")
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Mount outputs for video streaming and static folder for UI
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -43,6 +42,29 @@ def sanitize_filename(name: str) -> str:
     cleaned = re.sub(r'[\\/*?:"<>| ]', '_', name.strip())
     return cleaned if cleaned else "Emvic_Clip"
 
+def build_ydl_options(extra_opts=None):
+    """Universal options configured to defeat datacenter IP blocks."""
+    base_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'overwrites': True,
+        'force_keyframes_at_cuts': True,
+        'socket_timeout': 30,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['ios', 'android_creator', 'tv'],
+                'player_skip': ['webpage', 'configs']
+            }
+        },
+        'http_headers': {
+            'User-Agent': 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1 like Mac OS X)',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+    }
+    if extra_opts:
+        base_opts.update(extra_opts)
+    return base_opts
+
 def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, num_clips: int, aspect_ratio: str, min_duration: float, max_duration: float):
     global task_status
     try:
@@ -54,31 +76,27 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         audio_raw = "temp_audio_raw.m4a"
         audio_fast = "temp_audio_fast.mp3"
 
-        # Cloud IP bypass headers and client fallback
-        common_ydl_args = {
-            'quiet': True,
-            'no_warnings': True,
-            'overwrites': True,
-            'force_keyframes_at_cuts': True,
-            'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['mweb', 'tv_embedded', 'web'],
-                    'player_skip': ['configs', 'webpage']
-                }
-            }
-        }
-
-        # 1. Download initial audio segment
-        task_status["step"] = "Downloading source audio via bypass stream..."
-        ydl_opts_audio = {
-            **common_ydl_args,
-            'format': 'ba/b',
+        # 1. Download initial audio stream
+        task_status["step"] = "Connecting to mobile audio stream..."
+        ydl_audio_opts = build_ydl_options({
+            'format': 'ba/ba*',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
             'outtmpl': audio_raw
-        }
-        with yt_dlp.YoutubeDL(ydl_opts_audio) as ydl:
-            ydl.download([youtube_url])
+        })
+
+        try:
+            with yt_dlp.YoutubeDL(ydl_audio_opts) as ydl:
+                ydl.download([youtube_url])
+        except Exception:
+            # Fallback client if primary mobile client rejects
+            fallback_opts = build_ydl_options({
+                'format': 'ba/b',
+                'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
+                'outtmpl': audio_raw,
+                'extractor_args': {'youtube': {'player_client': ['tv']}}
+            })
+            with yt_dlp.YoutubeDL(fallback_opts) as ydl:
+                ydl.download([youtube_url])
 
         # Convert to lightweight 16kHz mono audio for Groq Whisper
         subprocess.run([
@@ -91,7 +109,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             os.remove(audio_raw)
 
         # 2. Transcribe and score high-retention viral segments
-        task_status["step"] = f"Emvic AI analyzing transcript & scoring top {num_clips} viral hooks..."
+        task_status["step"] = f"Emvic AI analyzing transcript & finding top {num_clips} viral moments..."
         client = Groq(api_key=groq_key)
         with open(audio_fast, "rb") as file:
             transcription = client.audio.transcriptions.create(
@@ -181,14 +199,24 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             filename = f"{safe_prefix}_{idx}.mp4"
             filepath = os.path.join(OUTPUT_DIR, filename)
 
-            ydl_section_opts = {
-                **common_ydl_args,
+            ydl_chunk_opts = build_ydl_options({
                 'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
                 'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
                 'outtmpl': raw_chunk
-            }
-            with yt_dlp.YoutubeDL(ydl_section_opts) as ydl:
-                ydl.download([youtube_url])
+            })
+
+            try:
+                with yt_dlp.YoutubeDL(ydl_chunk_opts) as ydl:
+                    ydl.download([youtube_url])
+            except Exception:
+                ydl_chunk_fallback = build_ydl_options({
+                    'format': 'b/best',
+                    'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
+                    'outtmpl': raw_chunk,
+                    'extractor_args': {'youtube': {'player_client': ['tv']}}
+                })
+                with yt_dlp.YoutubeDL(ydl_chunk_fallback) as ydl:
+                    ydl.download([youtube_url])
 
             subprocess.run([
                 "ffmpeg", "-y",
