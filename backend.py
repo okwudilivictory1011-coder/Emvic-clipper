@@ -14,6 +14,7 @@ app = FastAPI(title="Emvic Clipper")
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# Mount outputs for video streaming and static folder for UI
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -21,6 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, "static", "index.html")
 
 DEFAULT_GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
+COOKIE_PATH = "/etc/secrets/cookies.txt"
 
 task_status = {
     "status": "idle",
@@ -43,24 +45,23 @@ def sanitize_filename(name: str) -> str:
     return cleaned if cleaned else "Emvic_Clip"
 
 def build_ydl_options(extra_opts=None):
-    """Universal options configured to defeat datacenter IP blocks."""
+    """Universal options using your Render Secret cookies to defeat bot blocks."""
     base_opts = {
         'quiet': True,
         'no_warnings': True,
         'overwrites': True,
         'force_keyframes_at_cuts': True,
         'socket_timeout': 30,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['ios', 'android_creator', 'tv'],
-                'player_skip': ['webpage', 'configs']
-            }
-        },
         'http_headers': {
-            'User-Agent': 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1 like Mac OS X)',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
         }
     }
+    
+    # Automatically attach the cookie file if it exists on Render
+    if os.path.exists(COOKIE_PATH):
+        base_opts['cookiefile'] = COOKIE_PATH
+        
     if extra_opts:
         base_opts.update(extra_opts)
     return base_opts
@@ -77,26 +78,15 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         audio_fast = "temp_audio_fast.mp3"
 
         # 1. Download initial audio stream
-        task_status["step"] = "Connecting to mobile audio stream..."
+        task_status["step"] = "Authenticating with YouTube and downloading audio..."
         ydl_audio_opts = build_ydl_options({
             'format': 'ba/ba*',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
             'outtmpl': audio_raw
         })
 
-        try:
-            with yt_dlp.YoutubeDL(ydl_audio_opts) as ydl:
-                ydl.download([youtube_url])
-        except Exception:
-            # Fallback client if primary mobile client rejects
-            fallback_opts = build_ydl_options({
-                'format': 'ba/b',
-                'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
-                'outtmpl': audio_raw,
-                'extractor_args': {'youtube': {'player_client': ['tv']}}
-            })
-            with yt_dlp.YoutubeDL(fallback_opts) as ydl:
-                ydl.download([youtube_url])
+        with yt_dlp.YoutubeDL(ydl_audio_opts) as ydl:
+            ydl.download([youtube_url])
 
         # Convert to lightweight 16kHz mono audio for Groq Whisper
         subprocess.run([
@@ -205,18 +195,8 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                 'outtmpl': raw_chunk
             })
 
-            try:
-                with yt_dlp.YoutubeDL(ydl_chunk_opts) as ydl:
-                    ydl.download([youtube_url])
-            except Exception:
-                ydl_chunk_fallback = build_ydl_options({
-                    'format': 'b/best',
-                    'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
-                    'outtmpl': raw_chunk,
-                    'extractor_args': {'youtube': {'player_client': ['tv']}}
-                })
-                with yt_dlp.YoutubeDL(ydl_chunk_fallback) as ydl:
-                    ydl.download([youtube_url])
+            with yt_dlp.YoutubeDL(ydl_chunk_opts) as ydl:
+                ydl.download([youtube_url])
 
             subprocess.run([
                 "ffmpeg", "-y",
