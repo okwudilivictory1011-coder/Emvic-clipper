@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, "static", "index.html")
 
 # Optional: Default Groq Key
-DEFAULT_GROQ_KEY = ""
+DEFAULT_GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 
 task_status = {
     "status": "idle",
