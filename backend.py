@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import shutil
 import subprocess
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
@@ -22,7 +23,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, "static", "index.html")
 
 DEFAULT_GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
-COOKIE_PATH = "/etc/secrets/cookies.txt"
+RENDER_SECRET_COOKIE = "/etc/secrets/cookies.txt"
+WRITABLE_COOKIE_PATH = "/tmp/cookies.txt"
 
 task_status = {
     "status": "idle",
@@ -44,8 +46,21 @@ def sanitize_filename(name: str) -> str:
     cleaned = re.sub(r'[\\/*?:"<>| ]', '_', name.strip())
     return cleaned if cleaned else "Emvic_Clip"
 
+def get_active_cookie_file():
+    """Copies read-only Render secret cookies to a writable /tmp directory for yt-dlp."""
+    if os.path.exists(RENDER_SECRET_COOKIE):
+        try:
+            shutil.copyfile(RENDER_SECRET_COOKIE, WRITABLE_COOKIE_PATH)
+            return WRITABLE_COOKIE_PATH
+        except Exception:
+            return RENDER_SECRET_COOKIE
+    elif os.path.exists("cookies.txt"):
+        return "cookies.txt"
+    return None
+
 def build_ydl_options(extra_opts=None):
-    """Universal options using your Render Secret cookies to defeat bot blocks."""
+    """Universal options configured with writable cookies to prevent Errno 30."""
+    cookie_file = get_active_cookie_file()
     base_opts = {
         'quiet': True,
         'no_warnings': True,
@@ -58,9 +73,8 @@ def build_ydl_options(extra_opts=None):
         }
     }
     
-    # Automatically attach the cookie file if it exists on Render
-    if os.path.exists(COOKIE_PATH):
-        base_opts['cookiefile'] = COOKIE_PATH
+    if cookie_file:
+        base_opts['cookiefile'] = cookie_file
         
     if extra_opts:
         base_opts.update(extra_opts)
