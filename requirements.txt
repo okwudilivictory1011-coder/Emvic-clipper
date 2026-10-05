@@ -1,5 +1,4 @@
 fastapi
 uvicorn
-yt-dlp
 groq
-pydantic
+yt-dlp>=2025.1.0
