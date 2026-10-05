@@ -15,7 +15,6 @@ app = FastAPI(title="Emvic Clipper")
 OUTPUT_DIR = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Mount outputs for video streaming and static folder for UI
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -59,7 +58,7 @@ def get_active_cookie_file():
     return None
 
 def build_ydl_options(extra_opts=None):
-    """Bypasses 'page needs to be reloaded' by routing authenticated traffic through web_embedded."""
+    """Uses mobile clients (android/ios) which completely avoid the 'page needs to be reloaded' web bug."""
     cookie_file = get_active_cookie_file()
     base_opts = {
         'quiet': True,
@@ -69,13 +68,9 @@ def build_ydl_options(extra_opts=None):
         'socket_timeout': 30,
         'extractor_args': {
             'youtube': {
-                'player_client': ['web_embedded', 'web_safari', 'default'],
-                'player_skip': ['webpage']
+                'player_client': ['android', 'ios'],
+                'player_skip': ['webpage', 'configs']
             }
-        },
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
-            'Accept-Language': 'en-US,en;q=0.9',
         }
     }
     
@@ -97,8 +92,8 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         audio_raw = "temp_audio_raw.m4a"
         audio_fast = "temp_audio_fast.mp3"
 
-        # 1. Download initial audio stream
-        task_status["step"] = "Downloading audio stream..."
+        # 1. Download audio stream
+        task_status["step"] = "Authenticating and fetching audio stream..."
         ydl_audio_opts = build_ydl_options({
             'format': 'ba/ba*',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
