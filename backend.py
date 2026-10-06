@@ -59,7 +59,7 @@ def get_active_cookie_file():
     return None
 
 def build_ydl_options(extra_opts=None):
-    """Bypasses 'The page needs to be reloaded' by disabling tv_downgraded."""
+    """Reliable options bypassing both bot checks and reload errors."""
     cookie_file = get_active_cookie_file()
     base_opts = {
         'quiet': True,
@@ -96,10 +96,10 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         audio_raw = "temp_audio_raw.m4a"
         audio_fast = "temp_audio_fast.mp3"
 
-        # 1. Download initial audio stream
-        task_status["step"] = "Authenticating with YouTube and downloading audio..."
+        # 1. Download initial audio stream (flexible format matching)
+        task_status["step"] = "Authenticating and fetching audio..."
         ydl_audio_opts = build_ydl_options({
-            'format': 'ba/ba*',
+            'format': 'bestaudio/best',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
             'outtmpl': audio_raw
         })
@@ -208,8 +208,9 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             filename = f"{safe_prefix}_{idx}.mp4"
             filepath = os.path.join(OUTPUT_DIR, filename)
 
+            # Universal video format selector that handles all stream types
             ydl_chunk_opts = build_ydl_options({
-                'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
+                'format': 'bestvideo*+bestaudio/best',
                 'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
                 'outtmpl': raw_chunk
             })
