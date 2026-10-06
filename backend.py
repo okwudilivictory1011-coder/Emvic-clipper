@@ -47,7 +47,7 @@ def sanitize_filename(name: str) -> str:
     return cleaned if cleaned else "Emvic_Clip"
 
 def get_active_cookie_file():
-    """Copies read-only Render secret cookies to a writable /tmp directory for yt-dlp."""
+    """Copies read-only Render secret cookies to /tmp for yt-dlp."""
     if os.path.exists(RENDER_SECRET_COOKIE):
         try:
             shutil.copyfile(RENDER_SECRET_COOKIE, WRITABLE_COOKIE_PATH)
@@ -59,7 +59,7 @@ def get_active_cookie_file():
     return None
 
 def build_ydl_options(extra_opts=None):
-    """Reliable extractor settings using your verified browser cookies."""
+    """Bypasses 'The page needs to be reloaded' by disabling tv_downgraded."""
     cookie_file = get_active_cookie_file()
     base_opts = {
         'quiet': True,
@@ -67,6 +67,11 @@ def build_ydl_options(extra_opts=None):
         'overwrites': True,
         'force_keyframes_at_cuts': True,
         'socket_timeout': 30,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web_embedded', 'default', '-tv_downgraded'],
+            }
+        },
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -92,7 +97,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         audio_fast = "temp_audio_fast.mp3"
 
         # 1. Download initial audio stream
-        task_status["step"] = "Authenticating and fetching audio stream..."
+        task_status["step"] = "Authenticating with YouTube and downloading audio..."
         ydl_audio_opts = build_ydl_options({
             'format': 'ba/ba*',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
