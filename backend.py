@@ -58,21 +58,15 @@ def get_active_cookie_file():
     return None
 
 def build_ydl_options(extra_opts=None):
-    """
-    Omits explicit format strings to allow yt-dlp to automatically grab
-    whichever valid stream YouTube delivers without format rejection.
-    """
     cookie_file = get_active_cookie_file()
     base_opts = {
         'quiet': True,
         'no_warnings': True,
         'overwrites': True,
-        'force_keyframes_at_cuts': True,
-        'socket_timeout': 30,
-        'check_formats': False,
+        'socket_timeout': 60,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android_creator', 'android', 'web'],
+                'player_client': ['android', 'web'],
             }
         },
     }
@@ -92,30 +86,28 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         task_status["clips"] = []
 
         safe_prefix = sanitize_filename(custom_name)
-        source_media = "temp_source_media.mp4"
+        full_source = "temp_full_source.mp4"
         audio_fast = "temp_audio_fast.mp3"
 
-        # 1. Fetch initial segment for Whisper analysis (no restrictive format flag)
-        task_status["step"] = "Downloading source audio for AI transcription..."
-        ydl_audio_opts = build_ydl_options({
-            'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
-            'outtmpl': source_media
+        # 1. Download source video cleanly (no download_ranges to prevent format checks)
+        task_status["step"] = "Fetching video stream from YouTube..."
+        ydl_opts = build_ydl_options({
+            'format': 'best[ext=mp4]/best',
+            'outtmpl': full_source
         })
 
-        with yt_dlp.YoutubeDL(ydl_audio_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([youtube_url])
 
-        # Extract lightweight mono 16kHz audio for Whisper
+        # 2. Extract lightweight mono 16kHz audio for Whisper (first 12 minutes)
+        task_status["step"] = "Extracting audio for AI transcription..."
         subprocess.run([
-            "ffmpeg", "-y", "-i", source_media,
+            "ffmpeg", "-y", "-ss", "0", "-t", "720", "-i", full_source,
             "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k",
             audio_fast
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        if os.path.exists(source_media):
-            os.remove(source_media)
-
-        # 2. Transcribe & select viral hooks with Groq
+        # 3. Transcribe & select viral hooks with Groq
         task_status["step"] = f"Emvic AI analyzing transcript & finding top {num_clips} viral moments..."
         client = Groq(api_key=groq_key)
         with open(audio_fast, "rb") as file:
@@ -124,6 +116,9 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                 model="whisper-large-v3",
                 response_format="verbose_json",
             )
+
+        if os.path.exists(audio_fast):
+            os.remove(audio_fast)
 
         segments = [
             {"start": round(s["start"], 2), "end": round(s["end"], 2), "text": s["text"].strip()}
@@ -177,7 +172,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                     "title": f"Clip {i + 1}"
                 })
 
-        # 3. Dynamic Crop Filters
+        # 4. Crop Filter Settings
         if aspect_ratio == "1:1":
             vf_filter = "scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080,setsar=1"
             aspect_flag = "1:1"
@@ -199,50 +194,47 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             elif duration > max_duration:
                 end_t = start_t + max_duration - 5.0
 
+            clip_len = round(end_t - start_t, 1)
             title = clip.get("title", f"Clip {idx}")
             task_status["step"] = f"Rendering {safe_prefix}_{idx}.mp4 ({idx}/{len(clips_list[:num_clips])})..."
 
-            raw_chunk = f"temp_chunk_{idx}.mp4"
             filename = f"{safe_prefix}_{idx}.mp4"
             filepath = os.path.join(OUTPUT_DIR, filename)
 
-            ydl_chunk_opts = build_ydl_options({
-                'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
-                'outtmpl': raw_chunk
-            })
-
-            with yt_dlp.YoutubeDL(ydl_chunk_opts) as ydl:
-                ydl.download([youtube_url])
-
+            # FFmpeg performs the extraction directly from the local file
             subprocess.run([
                 "ffmpeg", "-y",
-                "-i", raw_chunk,
+                "-ss", str(start_t),
+                "-to", str(end_t),
+                "-i", full_source,
                 "-vf", vf_filter,
                 "-aspect", aspect_flag,
-                "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-threads", "0",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-threads", "0",
                 "-c:a", "aac", "-b:a", "192k",
                 filepath
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-            if os.path.exists(raw_chunk):
-                os.remove(raw_chunk)
 
             generated_clips.append({
                 "url": f"/outputs/{filename}",
                 "filename": filename,
                 "title": title,
-                "duration": round(end_t - start_t, 1),
+                "duration": clip_len,
                 "aspect": aspect_ratio
             })
 
-        if os.path.exists(audio_fast):
-            os.remove(audio_fast)
+        # Cleanup source file once all clips are created
+        if os.path.exists(full_source):
+            os.remove(full_source)
 
         task_status["clips"] = generated_clips
         task_status["status"] = "completed"
         task_status["step"] = "All clips ready!"
 
     except Exception as e:
+        if os.path.exists("temp_full_source.mp4"):
+            os.remove("temp_full_source.mp4")
+        if os.path.exists("temp_audio_fast.mp3"):
+            os.remove("temp_audio_fast.mp3")
         task_status["status"] = "error"
         task_status["error"] = str(e)
 
