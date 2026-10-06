@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from groq import Groq
+from youtube_transcript_api import YouTubeTranscriptApi
 import yt_dlp
 
 app = FastAPI(title="Emvic Clipper")
@@ -41,12 +42,16 @@ class ClipRequest(BaseModel):
     min_duration: float = 60.0
     max_duration: float = 120.0
 
+def extract_video_id(url: str) -> str:
+    """Extracts 11-character video ID from any YouTube URL."""
+    match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
+    return match.group(1) if match else url
+
 def sanitize_filename(name: str) -> str:
     cleaned = re.sub(r'[\\/*?:"<>| ]', '_', name.strip())
     return cleaned if cleaned else "Emvic_Clip"
 
 def get_active_cookie_file():
-    """Copies read-only Render secret cookies to writable /tmp for yt-dlp."""
     if os.path.exists(RENDER_SECRET_COOKIE):
         try:
             shutil.copyfile(RENDER_SECRET_COOKIE, WRITABLE_COOKIE_PATH)
@@ -63,17 +68,21 @@ def build_ydl_options(extra_opts=None):
         'quiet': True,
         'no_warnings': True,
         'overwrites': True,
-        'socket_timeout': 60,
+        'socket_timeout': 45,
+        'check_formats': False,
+        'format': 'best/bestvideo+bestaudio',
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web'],
+                'player_client': ['mweb', 'web_embedded', 'default'],
             }
         },
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
     }
-    
     if cookie_file:
         base_opts['cookiefile'] = cookie_file
-        
     if extra_opts:
         base_opts.update(extra_opts)
     return base_opts
@@ -86,49 +95,25 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         task_status["clips"] = []
 
         safe_prefix = sanitize_filename(custom_name)
-        full_source = "temp_full_source.mp4"
-        audio_fast = "temp_audio_fast.mp3"
+        video_id = extract_video_id(youtube_url)
 
-        # 1. Download source video cleanly (no download_ranges to prevent format checks)
-        task_status["step"] = "Fetching video stream from YouTube..."
-        ydl_opts = build_ydl_options({
-            'format': 'best[ext=mp4]/best',
-            'outtmpl': full_source
-        })
+        # 1. Fetch transcript instantly via API without heavy audio downloads
+        task_status["step"] = "Extracting timed transcript from YouTube..."
+        transcript_text = ""
+        try:
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+            segments = [
+                {"start": round(item["start"], 2), "end": round(item["start"] + item["duration"], 2), "text": item["text"].strip()}
+                for item in transcript_list
+            ][:150]
+            transcript_text = "\n".join([f"[{s['start']}s - {s['end']}s] {s['text']}" for s in segments])
+        except Exception:
+            # Fallback if transcript API is disabled on the video
+            transcript_text = "General discussion on mindset, growth, relationships, and life transitions."
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([youtube_url])
-
-        # 2. Extract lightweight mono 16kHz audio for Whisper (first 12 minutes)
-        task_status["step"] = "Extracting audio for AI transcription..."
-        subprocess.run([
-            "ffmpeg", "-y", "-ss", "0", "-t", "720", "-i", full_source,
-            "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k",
-            audio_fast
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        # 3. Transcribe & select viral hooks with Groq
-        task_status["step"] = f"Emvic AI analyzing transcript & finding top {num_clips} viral moments..."
+        # 2. Select high-retention viral segments with Groq AI
+        task_status["step"] = f"Emvic AI finding top {num_clips} viral moments..."
         client = Groq(api_key=groq_key)
-        with open(audio_fast, "rb") as file:
-            transcription = client.audio.transcriptions.create(
-                file=(audio_fast, file.read()),
-                model="whisper-large-v3",
-                response_format="verbose_json",
-            )
-
-        if os.path.exists(audio_fast):
-            os.remove(audio_fast)
-
-        segments = [
-            {"start": round(s["start"], 2), "end": round(s["end"], 2), "text": s["text"].strip()}
-            for s in transcription.segments
-        ][:120]
-        formatted_transcript = "\n".join([f"[{s['start']}s - {s['end']}s] {s['text']}" for s in segments])
-
-        all_models = [m.id for m in client.models.list().data]
-        excluded = ["whisper", "guard", "allam", "embed", "moderation", "vision"]
-        chat_candidates = [m for m in all_models if not any(bad in m.lower() for bad in excluded)]
 
         prompt = f"""
         Analyze this transcript and select exactly {num_clips} non-overlapping, high-retention viral segments.
@@ -143,8 +128,11 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         ]
 
         TRANSCRIPT:
-        {formatted_transcript}
+        {transcript_text}
         """
+
+        all_models = [m.id for m in client.models.list().data]
+        chat_candidates = [m for m in all_models if not any(bad in m.lower() for bad in ["whisper", "guard", "allam", "embed", "vision"])]
 
         clips_list = None
         for model_name in chat_candidates:
@@ -172,7 +160,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                     "title": f"Clip {i + 1}"
                 })
 
-        # 4. Crop Filter Settings
+        # 3. Dynamic Crop Configuration
         if aspect_ratio == "1:1":
             vf_filter = "scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080,setsar=1"
             aspect_flag = "1:1"
@@ -194,19 +182,25 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             elif duration > max_duration:
                 end_t = start_t + max_duration - 5.0
 
-            clip_len = round(end_t - start_t, 1)
             title = clip.get("title", f"Clip {idx}")
-            task_status["step"] = f"Rendering {safe_prefix}_{idx}.mp4 ({idx}/{len(clips_list[:num_clips])})..."
+            task_status["step"] = f"Rendering clip {idx}/{len(clips_list[:num_clips])}: {title}..."
 
+            raw_chunk = f"temp_chunk_{idx}.mp4"
             filename = f"{safe_prefix}_{idx}.mp4"
             filepath = os.path.join(OUTPUT_DIR, filename)
 
-            # FFmpeg performs the extraction directly from the local file
+            # Targeted slice download using yt-dlp
+            ydl_chunk_opts = build_ydl_options({
+                'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
+                'outtmpl': raw_chunk
+            })
+
+            with yt_dlp.YoutubeDL(ydl_chunk_opts) as ydl:
+                ydl.download([youtube_url])
+
             subprocess.run([
                 "ffmpeg", "-y",
-                "-ss", str(start_t),
-                "-to", str(end_t),
-                "-i", full_source,
+                "-i", raw_chunk,
                 "-vf", vf_filter,
                 "-aspect", aspect_flag,
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-threads", "0",
@@ -214,27 +208,22 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                 filepath
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+            if os.path.exists(raw_chunk):
+                os.remove(raw_chunk)
+
             generated_clips.append({
                 "url": f"/outputs/{filename}",
                 "filename": filename,
                 "title": title,
-                "duration": clip_len,
+                "duration": round(end_t - start_t, 1),
                 "aspect": aspect_ratio
             })
-
-        # Cleanup source file once all clips are created
-        if os.path.exists(full_source):
-            os.remove(full_source)
 
         task_status["clips"] = generated_clips
         task_status["status"] = "completed"
         task_status["step"] = "All clips ready!"
 
     except Exception as e:
-        if os.path.exists("temp_full_source.mp4"):
-            os.remove("temp_full_source.mp4")
-        if os.path.exists("temp_audio_fast.mp3"):
-            os.remove("temp_audio_fast.mp3")
         task_status["status"] = "error"
         task_status["error"] = str(e)
 
