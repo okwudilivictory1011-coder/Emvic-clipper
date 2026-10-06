@@ -46,7 +46,7 @@ def sanitize_filename(name: str) -> str:
     return cleaned if cleaned else "Emvic_Clip"
 
 def get_active_cookie_file():
-    """Copies read-only Render secret cookies to /tmp for yt-dlp."""
+    """Copies read-only Render secret cookies to a writable /tmp directory."""
     if os.path.exists(RENDER_SECRET_COOKIE):
         try:
             shutil.copyfile(RENDER_SECRET_COOKIE, WRITABLE_COOKIE_PATH)
@@ -58,6 +58,7 @@ def get_active_cookie_file():
     return None
 
 def build_ydl_options(extra_opts=None):
+    """Universal extractor settings that accept any available stream."""
     cookie_file = get_active_cookie_file()
     base_opts = {
         'quiet': True,
@@ -65,6 +66,7 @@ def build_ydl_options(extra_opts=None):
         'overwrites': True,
         'force_keyframes_at_cuts': True,
         'socket_timeout': 30,
+        'check_formats': False,
         'extractor_args': {
             'youtube': {
                 'player_client': ['web_embedded', 'default', '-tv_downgraded'],
@@ -91,28 +93,29 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         task_status["clips"] = []
 
         safe_prefix = sanitize_filename(custom_name)
-        raw_download = "temp_raw_source.mp4"
+        raw_source = "temp_raw_source.mp4"
         audio_fast = "temp_audio_fast.mp3"
 
-        # 1. Download initial media range without restrictive format constraints
-        task_status["step"] = "Downloading source media stream..."
+        # 1. Download initial media stream using universal fallback format
+        task_status["step"] = "Downloading audio stream..."
         ydl_audio_opts = build_ydl_options({
+            'format': 'ba/b/best',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
-            'outtmpl': raw_download
+            'outtmpl': raw_source
         })
 
         with yt_dlp.YoutubeDL(ydl_audio_opts) as ydl:
             ydl.download([youtube_url])
 
-        # Extract lightweight 16kHz mono audio from whatever container downloaded
+        # Convert to lightweight 16kHz mono audio for Whisper
         subprocess.run([
-            "ffmpeg", "-y", "-i", raw_download,
+            "ffmpeg", "-y", "-i", raw_source,
             "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k",
             audio_fast
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        if os.path.exists(raw_download):
-            os.remove(raw_download)
+        if os.path.exists(raw_source):
+            os.remove(raw_source)
 
         # 2. Transcribe and score high-retention viral segments
         task_status["step"] = f"Emvic AI analyzing transcript & finding top {num_clips} viral moments..."
@@ -206,6 +209,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             filepath = os.path.join(OUTPUT_DIR, filename)
 
             ydl_chunk_opts = build_ydl_options({
+                'format': 'b/best/bestvideo+bestaudio',
                 'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
                 'outtmpl': raw_chunk
             })
