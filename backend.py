@@ -43,15 +43,16 @@ class ClipRequest(BaseModel):
     max_duration: float = 120.0
 
 def extract_video_id(url: str) -> str:
-    """Extracts 11-character video ID from any YouTube URL."""
-    match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
-    return match.group(1) if match else url
+    """Extracts 11-character video ID from standard, short, or share URLs."""
+    match = re.search(r"(?:v=|\/|youtu\.be\/)([0-9A-Za-z_-]{11})", url)
+    return match.group(1) if match else url.strip()
 
 def sanitize_filename(name: str) -> str:
     cleaned = re.sub(r'[\\/*?:"<>| ]', '_', name.strip())
     return cleaned if cleaned else "Emvic_Clip"
 
 def get_active_cookie_file():
+    """Copies read-only Render secret cookies to writable /tmp for yt-dlp."""
     if os.path.exists(RENDER_SECRET_COOKIE):
         try:
             shutil.copyfile(RENDER_SECRET_COOKIE, WRITABLE_COOKIE_PATH)
@@ -63,6 +64,11 @@ def get_active_cookie_file():
     return None
 
 def build_ydl_options(extra_opts=None):
+    """
+    Android client settings:
+    Eliminates 'The page needs to be reloaded' by removing web-based scrapers.
+    Bypasses 'Requested format not available' by accepting any stream YouTube serves.
+    """
     cookie_file = get_active_cookie_file()
     base_opts = {
         'quiet': True,
@@ -73,11 +79,11 @@ def build_ydl_options(extra_opts=None):
         'format': 'best/bestvideo+bestaudio',
         'extractor_args': {
             'youtube': {
-                'player_client': ['mweb', 'web_embedded', 'default'],
+                'player_client': ['android'],
             }
         },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
         }
     }
@@ -97,22 +103,25 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         safe_prefix = sanitize_filename(custom_name)
         video_id = extract_video_id(youtube_url)
 
-        # 1. Fetch transcript instantly via API without heavy audio downloads
+        # 1. Fetch transcript instantly via API (no heavy audio media download)
         task_status["step"] = "Extracting timed transcript from YouTube..."
         transcript_text = ""
         try:
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
             segments = [
-                {"start": round(item["start"], 2), "end": round(item["start"] + item["duration"], 2), "text": item["text"].strip()}
+                {
+                    "start": round(item["start"], 2),
+                    "end": round(item["start"] + item["duration"], 2),
+                    "text": item["text"].strip()
+                }
                 for item in transcript_list
             ][:150]
             transcript_text = "\n".join([f"[{s['start']}s - {s['end']}s] {s['text']}" for s in segments])
         except Exception:
-            # Fallback if transcript API is disabled on the video
-            transcript_text = "General discussion on mindset, growth, relationships, and life transitions."
+            transcript_text = "Podcast episode discussing personal development, mindset, overcoming doubt, and life transitions."
 
-        # 2. Select high-retention viral segments with Groq AI
-        task_status["step"] = f"Emvic AI finding top {num_clips} viral moments..."
+        # 2. Transcribe & select viral hooks with Groq AI
+        task_status["step"] = f"Emvic AI analyzing transcript & finding top {num_clips} viral moments..."
         client = Groq(api_key=groq_key)
 
         prompt = f"""
@@ -189,7 +198,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             filename = f"{safe_prefix}_{idx}.mp4"
             filepath = os.path.join(OUTPUT_DIR, filename)
 
-            # Targeted slice download using yt-dlp
+            # Targeted slice download using yt-dlp via Android client
             ydl_chunk_opts = build_ydl_options({
                 'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
                 'outtmpl': raw_chunk
@@ -198,6 +207,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
             with yt_dlp.YoutubeDL(ydl_chunk_opts) as ydl:
                 ydl.download([youtube_url])
 
+            # Process crop, scale, and encoding via FFmpeg
             subprocess.run([
                 "ffmpeg", "-y",
                 "-i", raw_chunk,
