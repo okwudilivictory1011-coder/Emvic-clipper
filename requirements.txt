@@ -1,4 +1,6 @@
 fastapi
 uvicorn
 groq
-yt-dlp>=2025.1.0
+yt-dlp
+youtube-transcript-api
+pydantic
