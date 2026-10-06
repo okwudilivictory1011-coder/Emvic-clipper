@@ -46,7 +46,7 @@ def sanitize_filename(name: str) -> str:
     return cleaned if cleaned else "Emvic_Clip"
 
 def get_active_cookie_file():
-    """Copies read-only Render secret cookies to /tmp for yt-dlp."""
+    """Copies read-only Render secret cookies to writable /tmp for yt-dlp."""
     if os.path.exists(RENDER_SECRET_COOKIE):
         try:
             shutil.copyfile(RENDER_SECRET_COOKIE, WRITABLE_COOKIE_PATH)
@@ -59,9 +59,9 @@ def get_active_cookie_file():
 
 def build_ydl_options(extra_opts=None):
     """
-    Bulletproof client:
-    Forces the iOS YouTube client which provides unified streams and bypasses
-    both datacenter bot blocks and format availability errors.
+    Robust configuration:
+    - Uses Android client fallback which yields reliable streams on datacenter IPs.
+    - Sets a universal format fallback that accepts both separate and combined muxed streams.
     """
     cookie_file = get_active_cookie_file()
     base_opts = {
@@ -71,13 +71,14 @@ def build_ydl_options(extra_opts=None):
         'force_keyframes_at_cuts': True,
         'socket_timeout': 30,
         'check_formats': False,
+        'format': 'best[ext=mp4]/bestvideo*+bestaudio/best',
         'extractor_args': {
             'youtube': {
-                'player_client': ['ios'],
+                'player_client': ['android', 'web'],
             }
         },
         'http_headers': {
-            'User-Agent': 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1 like Mac OS X)',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
         }
     }
@@ -100,8 +101,8 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         source_media = "temp_source_media.mp4"
         audio_fast = "temp_audio_fast.mp3"
 
-        # 1. Download initial media stream without any restrictive format filter
-        task_status["step"] = "Downloading source media stream..."
+        # 1. Download initial media stream (up to first 720 seconds for Whisper)
+        task_status["step"] = "Downloading media stream for AI analysis..."
         ydl_audio_opts = build_ydl_options({
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
             'outtmpl': source_media
@@ -110,7 +111,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         with yt_dlp.YoutubeDL(ydl_audio_opts) as ydl:
             ydl.download([youtube_url])
 
-        # Extract lightweight 16kHz mono audio for Whisper transcription
+        # Extract lightweight 16kHz mono audio for Groq Whisper
         subprocess.run([
             "ffmpeg", "-y", "-i", source_media,
             "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k",
@@ -120,7 +121,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         if os.path.exists(source_media):
             os.remove(source_media)
 
-        # 2. Transcribe and score high-retention viral segments
+        # 2. Transcribe and score viral moments
         task_status["step"] = f"Emvic AI analyzing transcript & finding top {num_clips} viral moments..."
         client = Groq(api_key=groq_key)
         with open(audio_fast, "rb") as file:
@@ -182,7 +183,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                     "title": f"Clip {i + 1}"
                 })
 
-        # 3. Dynamic Crop Filter Selection
+        # 3. Dynamic Aspect Ratio Filter
         if aspect_ratio == "1:1":
             vf_filter = "scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080,setsar=1"
             aspect_flag = "1:1"
