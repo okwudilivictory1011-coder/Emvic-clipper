@@ -59,9 +59,8 @@ def get_active_cookie_file():
 
 def build_ydl_options(extra_opts=None):
     """
-    Unified options:
-    - Avoids 'format not available' by prioritizing combined 'best' stream
-    - Bypasses 'The page needs to be reloaded' error via mweb/embedded fallback
+    Omits explicit format strings to allow yt-dlp to automatically grab
+    whichever valid stream YouTube delivers without format rejection.
     """
     cookie_file = get_active_cookie_file()
     base_opts = {
@@ -71,16 +70,11 @@ def build_ydl_options(extra_opts=None):
         'force_keyframes_at_cuts': True,
         'socket_timeout': 30,
         'check_formats': False,
-        'format': 'best/bestvideo+bestaudio',
         'extractor_args': {
             'youtube': {
-                'player_client': ['mweb', 'web_embedded', 'default', '-tv_downgraded'],
+                'player_client': ['android_creator', 'android', 'web'],
             }
         },
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
-            'Accept-Language': 'en-US,en;q=0.9',
-        }
     }
     
     if cookie_file:
@@ -101,10 +95,9 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         source_media = "temp_source_media.mp4"
         audio_fast = "temp_audio_fast.mp3"
 
-        # 1. Download initial media stream for Whisper
-        task_status["step"] = "Downloading stream for AI transcription..."
+        # 1. Fetch initial segment for Whisper analysis (no restrictive format flag)
+        task_status["step"] = "Downloading source audio for AI transcription..."
         ydl_audio_opts = build_ydl_options({
-            'format': 'ba/b/best',
             'download_ranges': yt_dlp.utils.download_range_func(None, [(0, 720)]),
             'outtmpl': source_media
         })
@@ -112,7 +105,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         with yt_dlp.YoutubeDL(ydl_audio_opts) as ydl:
             ydl.download([youtube_url])
 
-        # Extract lightweight 16kHz mono audio for Groq Whisper
+        # Extract lightweight mono 16kHz audio for Whisper
         subprocess.run([
             "ffmpeg", "-y", "-i", source_media,
             "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k",
@@ -122,7 +115,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
         if os.path.exists(source_media):
             os.remove(source_media)
 
-        # 2. Transcribe and score high-retention viral segments
+        # 2. Transcribe & select viral hooks with Groq
         task_status["step"] = f"Emvic AI analyzing transcript & finding top {num_clips} viral moments..."
         client = Groq(api_key=groq_key)
         with open(audio_fast, "rb") as file:
@@ -184,7 +177,7 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                     "title": f"Clip {i + 1}"
                 })
 
-        # 3. Dynamic Crop Filter Selection
+        # 3. Dynamic Crop Filters
         if aspect_ratio == "1:1":
             vf_filter = "scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080,setsar=1"
             aspect_flag = "1:1"
@@ -207,14 +200,13 @@ def process_video_pipeline(groq_key: str, youtube_url: str, custom_name: str, nu
                 end_t = start_t + max_duration - 5.0
 
             title = clip.get("title", f"Clip {idx}")
-            task_status["step"] = f"Rendering {safe_prefix}_{idx}.mp4 in {aspect_ratio} ({idx}/{len(clips_list[:num_clips])})..."
+            task_status["step"] = f"Rendering {safe_prefix}_{idx}.mp4 ({idx}/{len(clips_list[:num_clips])})..."
 
             raw_chunk = f"temp_chunk_{idx}.mp4"
             filename = f"{safe_prefix}_{idx}.mp4"
             filepath = os.path.join(OUTPUT_DIR, filename)
 
             ydl_chunk_opts = build_ydl_options({
-                'format': 'best/bestvideo+bestaudio',
                 'download_ranges': yt_dlp.utils.download_range_func(None, [(start_t, end_t)]),
                 'outtmpl': raw_chunk
             })
